@@ -1,0 +1,12 @@
+<resources>
+    <string name="settings_title">设置</string>
+    <string name="navigate_back">返回</string>
+    <string name="theme_title">外观</string>
+    <string name="theme_system">跟随系统</string>
+    <string name="theme_light">浅色</string>
+    <string name="theme_dark">深色</string>
+    <string name="read_error">无法读取设置，请重试。</string>
+    <string name="write_error">保存失败，请重新选择。</string>
+    <string name="retry">重试</string>
+    <string name="dismiss">关闭提示</string>
+</resources>

@@ -1,0 +1,5 @@
+<resources>
+    <string name="home_title">Home</string>
+    <string name="home_description">Your next project starts here.</string>
+    <string name="open_settings">Settings</string>
+</resources>
