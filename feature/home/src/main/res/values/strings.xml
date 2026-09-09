@@ -1,5 +1,13 @@
 <resources>
-    <string name="home_title">Home</string>
+    <string name="home_title">首页</string>
+    <string name="search">搜索</string>
+    <string name="search_not_available">搜索功能暂未开放</string>
+    <string name="banner_error">Banner 加载失败，请重试</string>
+    <string name="banner_empty">暂无 Banner</string>
+    <string name="retry">重新加载</string>
+    <string name="image_retry">图片加载失败，点击重试</string>
+    <string name="open_banner">打开 Banner 详情</string>
+    <string name="link_error">暂时无法打开此链接</string>
     <string name="home_description">Your next project starts here.</string>
     <string name="open_settings">Settings</string>
 </resources>

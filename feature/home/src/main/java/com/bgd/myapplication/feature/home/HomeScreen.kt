@@ -1,40 +1,161 @@
-package com.bgd.myapplication.feature.home
+﻿package com.bgd.myapplication.feature.home
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import android.widget.Toast
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsDraggedAsState
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.bgd.myapplication.core.designsystem.AppTheme
+import androidx.compose.ui.unit.sp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.repeatOnLifecycle
+import coil3.compose.SubcomposeAsyncImage
+import com.bgd.myapplication.core.model.Banner
+import kotlinx.coroutines.delay
+import kotlin.math.absoluteValue
+
+val HomePurple = Color(0xFF7042C1)
 
 @Composable
-fun HomeRoute(onOpenSettings: () -> Unit) {
-    HomeScreen(onOpenSettings = onOpenSettings)
+fun HomeRoute(viewModel: HomeViewModel = hiltViewModel()) {
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    HomeScreen(state = state, onRetry = viewModel::loadBanners)
 }
 
 @Composable
-fun HomeScreen(onOpenSettings: () -> Unit, modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier.fillMaxSize().padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Text(stringResource(R.string.home_title), style = MaterialTheme.typography.headlineMedium)
-        Text(stringResource(R.string.home_description), style = MaterialTheme.typography.bodyLarge)
-        Button(onClick = onOpenSettings) { Text(stringResource(R.string.open_settings)) }
+fun HomeScreen(state: HomeUiState, onRetry: () -> Unit, modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    Column(modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+        Row(
+            Modifier.fillMaxWidth().background(HomePurple).height(56.dp).padding(start = 16.dp, end = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(stringResource(R.string.home_title), color = Color.White, fontSize = 22.sp,
+                modifier = Modifier.weight(1f))
+            IconButton(onClick = {
+                Toast.makeText(context, R.string.search_not_available, Toast.LENGTH_SHORT).show()
+            }) {
+                Icon(painterResource(R.drawable.ic_search), stringResource(R.string.search), tint = Color.White)
+            }
+        }
+        Box(Modifier.fillMaxWidth().padding(top = 20.dp).heightIn(min = 180.dp), contentAlignment = Alignment.Center) {
+            when {
+                state.loading -> CircularProgressIndicator(Modifier.size(28.dp), color = HomePurple)
+                state.failed -> BannerMessage(R.string.banner_error, onRetry)
+                state.banners.isEmpty() -> BannerMessage(R.string.banner_empty, onRetry)
+                else -> BannerCarousel(state.banners)
+            }
+        }
     }
 }
 
-@Preview(showBackground = true)
 @Composable
-private fun HomePreview() {
-    AppTheme { HomeScreen(onOpenSettings = {}) }
+private fun BannerMessage(message: Int, onRetry: () -> Unit) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(stringResource(message), color = MaterialTheme.colorScheme.onSurfaceVariant)
+        TextButton(onClick = onRetry) { Text(stringResource(R.string.retry)) }
+    }
+}
+
+@Composable
+private fun BannerCarousel(banners: List<Banner>) {
+    // Recreate the pager only when the returned banner set changes.
+    key(banners.map { it.id }) {
+        val count = banners.size
+        val initialPage = if (count > 1) Int.MAX_VALUE / 2 / count * count else 0
+        val pager = rememberPagerState(initialPage = initialPage) { if (count > 1) Int.MAX_VALUE else 1 }
+        val dragged by pager.interactionSource.collectIsDraggedAsState()
+        val interaction = remember { MutableInteractionSource() }
+        val pressed by interaction.collectIsPressedAsState()
+        val lifecycle = LocalLifecycleOwner.current.lifecycle
+        LaunchedEffect(pager, dragged, pressed, lifecycle) {
+            lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+                if (count > 1 && !dragged && !pressed) {
+                    while (true) {
+                        delay(4_000)
+                        if (!pager.isScrollInProgress) {
+                            pager.animateScrollToPage(if (pager.currentPage == Int.MAX_VALUE - 1) initialPage else pager.currentPage + 1)
+                        }
+                    }
+                }
+            }
+        }
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            HorizontalPager(
+                state = pager,
+                contentPadding = PaddingValues(horizontal = 36.dp),
+                pageSpacing = 10.dp,
+                modifier = Modifier.fillMaxWidth().testTag("home_banner"),
+            ) { page ->
+                val banner = banners[page % count]
+                val uriHandler = LocalUriHandler.current
+                val context = LocalContext.current
+                var retry by remember(banner.imageUrl) { mutableIntStateOf(0) }
+                Box(
+                    Modifier.graphicsLayer {
+                        val distance = ((pager.currentPage - page) + pager.currentPageOffsetFraction).absoluteValue.coerceIn(0f, 1f)
+                        scaleY = 1f - distance * 0.12f
+                    }.fillMaxWidth().aspectRatio(1.65f).clip(RoundedCornerShape(6.dp))
+                        .background(MaterialTheme.colorScheme.surfaceContainer)
+                        .clickable(interactionSource = interaction, indication = null,
+                            onClickLabel = stringResource(R.string.open_banner)) {
+                            try {
+                                val uri = android.net.Uri.parse(banner.url)
+                                require(uri.scheme in listOf("https", "http") && !uri.host.isNullOrBlank())
+                                uriHandler.openUri(banner.url)
+                            } catch (_: Exception) {
+                                Toast.makeText(context, R.string.link_error, Toast.LENGTH_SHORT).show()
+                            }
+                        },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    key(retry) {
+                        SubcomposeAsyncImage(
+                            model = banner.imageUrl,
+                            contentDescription = banner.title,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize(),
+                            loading = { Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                CircularProgressIndicator(Modifier.size(24.dp), color = HomePurple)
+                            } },
+                            error = { Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                TextButton(onClick = { retry++ }) { Text(stringResource(R.string.image_retry)) }
+                            } },
+                        )
+                    }
+                }
+            }
+            if (count > 1) {
+                Row(Modifier.padding(top = 10.dp, bottom = 12.dp), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                    repeat(count) { index ->
+                        Box(Modifier.size(5.dp).clip(CircleShape).background(
+                            if (pager.currentPage % count == index) HomePurple else MaterialTheme.colorScheme.outlineVariant,
+                        ))
+                    }
+                }
+            }
+        }
+    }
 }
