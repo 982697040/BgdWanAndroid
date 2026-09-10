@@ -14,6 +14,10 @@ data class ArticleResponse(val data: ArticlePageDto? = null, val errorCode: Int,
 
 @OptIn(InternalSerializationApi::class)
 @Serializable
+data class TopArticleResponse(val data: List<ArticleDto>? = null, val errorCode: Int, val errorMsg: String = "")
+
+@OptIn(InternalSerializationApi::class)
+@Serializable
 data class ArticlePageDto(val datas: List<ArticleDto> = emptyList(), val over: Boolean = false)
 
 @OptIn(InternalSerializationApi::class)
@@ -32,12 +36,19 @@ data class ArticleDto(
 )
 
 internal interface ArticleService {
+    @GET("article/top/json")
+    suspend fun topArticles(): TopArticleResponse
     @GET("article/list/{page}/json")
     suspend fun articles(@Path("page") page: Int): ArticleResponse
 }
 
 @Singleton
 class ArticleApi @Inject constructor(factory: RetrofitFactory) {
+    suspend fun getTopArticles(): List<ArticleDto> {
+        val response = service.topArticles()
+        check(response.errorCode == 0) { response.errorMsg.ifBlank { "Top articles request failed" } }
+        return checkNotNull(response.data) { "Missing top articles" }
+    }
     private val service = factory.create("https://wanandroid.com/".toHttpUrl()).create(ArticleService::class.java)
     suspend fun getArticles(page: Int): ArticlePageDto {
         val response = service.articles(page)

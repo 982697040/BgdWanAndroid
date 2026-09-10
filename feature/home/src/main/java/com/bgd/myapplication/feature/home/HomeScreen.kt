@@ -43,12 +43,17 @@ val HomePurple = Color(0xFF7042C1)
 @Composable
 fun HomeRoute(viewModel: HomeViewModel = hiltViewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    HomeScreen(state = state, onRetry = viewModel::loadBanners, onLoadArticles = viewModel::loadArticles)
+    HomeScreen(state = state, onRetry = viewModel::loadBanners, onLoadArticles = viewModel::loadArticles,
+        onRetryTopArticles = viewModel::loadTopArticles)
 }
 
 @Composable
-fun HomeScreen(state: HomeUiState, onRetry: () -> Unit, onLoadArticles: () -> Unit, modifier: Modifier = Modifier) {
+fun HomeScreen(state: HomeUiState, onRetry: () -> Unit, onLoadArticles: () -> Unit,
+    modifier: Modifier = Modifier, onRetryTopArticles: () -> Unit = {},
+) {
     val context = LocalContext.current
+    val topIds = state.topArticles.map { it.id }.toSet()
+    val regularArticles = state.articles.filterNot { it.id in topIds }
     Column(modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         Row(
             Modifier.fillMaxWidth().background(HomePurple).height(56.dp).padding(start = 16.dp, end = 4.dp),
@@ -76,7 +81,16 @@ fun HomeScreen(state: HomeUiState, onRetry: () -> Unit, onLoadArticles: () -> Un
                 }
             }
             }
-            items(state.articles, key = { "article_${it.id}" }) { article -> ArticleCard(article) }
+            if (state.topArticlesLoading || state.topArticlesFailed) {
+                item(key = "top_status") {
+                    Box(Modifier.fillMaxWidth().padding(12.dp), contentAlignment = Alignment.Center) {
+                        if (state.topArticlesLoading) CircularProgressIndicator(Modifier.size(24.dp), color = HomePurple)
+                        else BannerMessage(R.string.top_articles_error, onRetryTopArticles)
+                    }
+                }
+            }
+            items(state.topArticles, key = { "article_${it.id}" }) { ArticleCard(it, pinned = true) }
+            items(regularArticles, key = { "article_${it.id}" }) { article -> ArticleCard(article) }
             item(key = "article_footer") {
                 LaunchedEffect(state.articles.size) {
                     if (!state.articlesLoading && !state.articlesFailed && !state.articlesEndReached) onLoadArticles()
@@ -86,7 +100,7 @@ fun HomeScreen(state: HomeUiState, onRetry: () -> Unit, onLoadArticles: () -> Un
                         state.articlesLoading -> CircularProgressIndicator(Modifier.size(24.dp), color = HomePurple)
                         state.articlesFailed -> BannerMessage(R.string.articles_error, onLoadArticles)
                         state.articlesEndReached -> Text(stringResource(
-                            if (state.articles.isEmpty()) R.string.articles_empty else R.string.articles_end,
+                            if (state.articles.isEmpty() && state.topArticles.isEmpty()) R.string.articles_empty else R.string.articles_end,
                         ), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
                     }
                 }

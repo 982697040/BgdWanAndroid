@@ -14,11 +14,29 @@ import com.bgd.myapplication.feature.home.HomeScreen
 import com.bgd.myapplication.feature.home.HomeUiState
 import java.util.concurrent.atomic.AtomicInteger
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
 class HomeArticlesTest {
     @get:Rule val compose = createAndroidComposeRule<MainActivity>()
+
+    @Test fun pinnedArticlesPrecedeRegularArticlesWithoutDuplicates() {
+        val pinned = Article(100, "置顶标题", "https://wanandroid.com", "作者", "", "分类", false)
+        val regular = pinned.copy(id = 101, title = "普通标题")
+        compose.activityRule.scenario.onActivity { activity ->
+            activity.setContent {
+                AppTheme {
+                    HomeScreen(HomeUiState(loading = false, topArticles = listOf(pinned),
+                        articles = listOf(regular, pinned), articlesEndReached = true), {}, {})
+                }
+            }
+        }
+        compose.onNodeWithText("置顶").assertIsDisplayed()
+        val top = compose.onNodeWithTag("article_100").fetchSemanticsNode().boundsInRoot.top
+        val next = compose.onNodeWithTag("article_101").fetchSemanticsNode().boundsInRoot.top
+        assertTrue(top < next)
+    }
 
     @Test fun reachingListEndRequestsNextPage() {
         val requests = AtomicInteger()

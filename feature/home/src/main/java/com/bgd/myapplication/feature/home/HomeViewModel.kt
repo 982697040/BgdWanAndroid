@@ -23,6 +23,9 @@ data class HomeUiState(
     val articlesLoading: Boolean = false,
     val articlesFailed: Boolean = false,
     val articlesEndReached: Boolean = false,
+    val topArticles: List<Article> = emptyList(),
+    val topArticlesLoading: Boolean = false,
+    val topArticlesFailed: Boolean = false,
 )
 
 @HiltViewModel
@@ -35,8 +38,24 @@ class HomeViewModel @Inject constructor(
     private var request: Job? = null
     private var articleRequest: Job? = null
     private var nextPage = 0
+    private var topRequest: Job? = null
 
-    init { loadBanners(); loadArticles() }
+    init { loadBanners(); loadTopArticles(); loadArticles() }
+
+    fun loadTopArticles() {
+        if (topRequest?.isActive == true) return
+        topRequest = viewModelScope.launch {
+            mutableState.update { it.copy(topArticlesLoading = true, topArticlesFailed = false) }
+            try {
+                val articles = articleRepository.getTopArticles()
+                mutableState.update { it.copy(topArticles = articles, topArticlesLoading = false) }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                mutableState.update { it.copy(topArticlesLoading = false, topArticlesFailed = true) }
+            }
+        }
+    }
 
     fun loadArticles() {
         if (articleRequest?.isActive == true || mutableState.value.articlesEndReached) return

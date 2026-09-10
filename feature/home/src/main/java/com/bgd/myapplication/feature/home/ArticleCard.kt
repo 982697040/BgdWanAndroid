@@ -20,7 +20,7 @@ import androidx.compose.ui.unit.sp
 import com.bgd.myapplication.core.model.Article
 
 @Composable
-internal fun ArticleCard(article: Article) {
+internal fun ArticleCard(article: Article, pinned: Boolean = false) {
     val context = LocalContext.current
     val uriHandler = LocalUriHandler.current
     Card(
@@ -40,6 +40,8 @@ internal fun ArticleCard(article: Article) {
     ) {
         Column(Modifier.padding(start = 10.dp, top = 10.dp, end = 6.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
+                if (pinned) Text(stringResource(R.string.article_pinned),
+                    Modifier.padding(end = 8.dp), color = Color(0xFFFF443D), fontSize = 12.sp)
                 Text(article.author, Modifier.weight(1f).padding(end = 8.dp), fontSize = 12.sp,
                     maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(article.date, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)

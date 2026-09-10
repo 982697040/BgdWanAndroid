@@ -1,4 +1,6 @@
 <resources>
+    <string name="article_pinned">置顶</string>
+    <string name="top_articles_error">置顶文章加载失败，请重试</string>
     <string name="articles_error">文章加载失败，请重试</string>
     <string name="articles_empty">暂无文章</string>
     <string name="articles_end">已经到底了</string>
