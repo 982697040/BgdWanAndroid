@@ -8,9 +8,34 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import org.junit.Rule
 import org.junit.Test
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.performScrollToIndex
+import androidx.compose.ui.semantics.SemanticsProperties
+import org.junit.Assert.assertEquals
 
 class AppNavigationTest {
     @get:Rule val compose = createAndroidComposeRule<MainActivity>()
+
+    @Test fun projectScrollSurvivesEveryBottomTab() {
+        compose.onNodeWithTag("tab_projects").performClick()
+        val projectCard = SemanticsMatcher("project card") { node ->
+            node.config.getOrElse(SemanticsProperties.TestTag) { "" }
+                .removePrefix("project_").toIntOrNull() != null
+        }
+        compose.waitUntil(60_000) { compose.onAllNodes(projectCard).fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithTag("projects_grid").performScrollToIndex(6)
+        compose.waitForIdle()
+        val before = compose.onNodeWithTag("projects_grid").fetchSemanticsNode()
+            .config[SemanticsProperties.VerticalScrollAxisRange].value()
+        listOf("home", "system", "me").forEach { tab ->
+            compose.onNodeWithTag("tab_$tab").performClick()
+            compose.onNodeWithTag("tab_projects").performClick()
+            compose.waitForIdle()
+            val after = compose.onNodeWithTag("projects_grid").fetchSemanticsNode()
+                .config[SemanticsProperties.VerticalScrollAxisRange].value()
+            assertEquals(before, after, 0.01f)
+        }
+    }
 
     @Test fun bottomNavigationStartsAtHomeAndSwitchesTabs() {
         compose.onNodeWithTag("tab_home").assertIsSelected()

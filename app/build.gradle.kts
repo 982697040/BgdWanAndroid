@@ -31,6 +31,7 @@ android {
 }
 kotlin { compilerOptions { jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17) } }
 dependencies {
+    implementation(project(":feature:projects"))
     implementation(project(":core:model"))
     implementation(project(":core:datastore"))
     implementation(project(":core:data"))

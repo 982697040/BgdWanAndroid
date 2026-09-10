@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsTopHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import com.bgd.myapplication.feature.home.HomePurple
+import com.bgd.myapplication.feature.projects.ProjectsRoute
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Column
@@ -27,6 +28,11 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
+import androidx.activity.compose.BackHandler
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
@@ -75,13 +81,19 @@ fun BgdApp(viewModel: AppViewModel = hiltViewModel()) {
         ThemeMode.DARK -> true
     }
     val backStack = rememberNavBackStack(Home)
-    val isHome = backStack.lastOrNull() == Home
+    var selectedTab by rememberSaveable { mutableStateOf(MainTab.HOME) }
+    val tabStateHolder = rememberSaveableStateHolder()
+    val hasPurpleHeader = backStack.lastOrNull() == Home &&
+        selectedTab in listOf(MainTab.HOME, MainTab.PROJECTS)
+    BackHandler(enabled = backStack.lastOrNull() == Home && selectedTab != MainTab.HOME) {
+        selectedTab = MainTab.HOME
+    }
     val view = LocalView.current
     SideEffect {
         val window = (view.context as? Activity)?.window
         if (window != null) {
             WindowCompat.getInsetsController(window, view).apply {
-                isAppearanceLightStatusBars = !dark && !isHome
+                isAppearanceLightStatusBars = !dark && !hasPurpleHeader
                 isAppearanceLightNavigationBars = !dark
             }
         }
@@ -93,7 +105,7 @@ fun BgdApp(viewModel: AppViewModel = hiltViewModel()) {
         Scaffold(
             modifier = Modifier.fillMaxSize(),
             topBar = {
-                if (isHome) Box(Modifier.fillMaxWidth().windowInsetsTopHeight(WindowInsets.statusBars).background(HomePurple))
+                if (hasPurpleHeader) Box(Modifier.fillMaxWidth().windowInsetsTopHeight(WindowInsets.statusBars).background(HomePurple))
             },
             bottomBar = {
                 if (backStack.lastOrNull() != Settings) {
@@ -101,13 +113,8 @@ fun BgdApp(viewModel: AppViewModel = hiltViewModel()) {
                         MainTab.entries.forEach { tab ->
                             NavigationBarItem(
                                 modifier = Modifier.testTag("tab_${tab.name.lowercase()}"),
-                                selected = backStack.lastOrNull() == tab.key,
-                                onClick = {
-                                    if (backStack.lastOrNull() != tab.key) {
-                                        while (backStack.size > 1) backStack.removeAt(backStack.lastIndex)
-                                        if (tab.key != Home) backStack.add(tab.key)
-                                    }
-                                },
+                                selected = selectedTab == tab,
+                                onClick = { selectedTab = tab },
                                 icon = { Icon(painterResource(tab.icon), contentDescription = null) },
                                 label = { Text(stringResource(tab.label)) },
                             )
@@ -126,18 +133,21 @@ fun BgdApp(viewModel: AppViewModel = hiltViewModel()) {
                 ),
                 entryProvider = entryProvider {
                     entry<Home> {
-                        HomeRoute()
-                    }
-                    entry<Settings> { SettingsRoute(onBack = onBack) }
-                    entry<System> { TabScreen(R.string.tab_system) }
-                    entry<Projects> { TabScreen(R.string.tab_projects) }
-                    entry<Me> {
-                        TabScreen(R.string.tab_me) {
-                            Button(onClick = { backStack.add(Settings) }) {
-                                Text(stringResource(com.bgd.myapplication.feature.home.R.string.open_settings))
+                        // All tabs share the main entry's ViewModel lifetime, but save UI state separately.
+                        tabStateHolder.SaveableStateProvider(selectedTab.name) {
+                            when (selectedTab) {
+                                MainTab.HOME -> HomeRoute()
+                                MainTab.SYSTEM -> TabScreen(R.string.tab_system)
+                                MainTab.PROJECTS -> ProjectsRoute()
+                                MainTab.ME -> TabScreen(R.string.tab_me) {
+                                    Button(onClick = { backStack.add(Settings) }) {
+                                        Text(stringResource(com.bgd.myapplication.feature.home.R.string.open_settings))
+                                    }
+                                }
                             }
                         }
                     }
+                    entry<Settings> { SettingsRoute(onBack = onBack) }
                 },
             )
         }

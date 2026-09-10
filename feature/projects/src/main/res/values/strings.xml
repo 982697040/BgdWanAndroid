@@ -1,0 +1,14 @@
+﻿<resources>
+    <string name="projects_title">项目</string>
+    <string name="search">搜索</string>
+    <string name="search_pending">搜索功能暂未开放</string>
+    <string name="categories_error">分类加载失败，请重试</string>
+    <string name="categories_empty">暂无项目分类</string>
+    <string name="projects_error">项目加载失败，请重试</string>
+    <string name="projects_empty">该分类暂无项目</string>
+    <string name="projects_end">已经到底了</string>
+    <string name="retry">重新加载</string>
+    <string name="image_retry">图片加载失败，点击重试</string>
+    <string name="image_empty">暂无预览图</string>
+    <string name="link_error">暂时无法打开此链接</string>
+</resources>
