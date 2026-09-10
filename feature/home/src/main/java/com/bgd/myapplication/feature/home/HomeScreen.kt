@@ -1,4 +1,4 @@
-﻿package com.bgd.myapplication.feature.home
+package com.bgd.myapplication.feature.home
 
 import android.widget.Toast
 import androidx.compose.foundation.background
@@ -7,6 +7,8 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsDraggedAsState
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
@@ -41,11 +43,11 @@ val HomePurple = Color(0xFF7042C1)
 @Composable
 fun HomeRoute(viewModel: HomeViewModel = hiltViewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    HomeScreen(state = state, onRetry = viewModel::loadBanners)
+    HomeScreen(state = state, onRetry = viewModel::loadBanners, onLoadArticles = viewModel::loadArticles)
 }
 
 @Composable
-fun HomeScreen(state: HomeUiState, onRetry: () -> Unit, modifier: Modifier = Modifier) {
+fun HomeScreen(state: HomeUiState, onRetry: () -> Unit, onLoadArticles: () -> Unit, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     Column(modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         Row(
@@ -60,12 +62,34 @@ fun HomeScreen(state: HomeUiState, onRetry: () -> Unit, modifier: Modifier = Mod
                 Icon(painterResource(R.drawable.ic_search), stringResource(R.string.search), tint = Color.White)
             }
         }
-        Box(Modifier.fillMaxWidth().padding(top = 20.dp).heightIn(min = 180.dp), contentAlignment = Alignment.Center) {
-            when {
-                state.loading -> CircularProgressIndicator(Modifier.size(28.dp), color = HomePurple)
-                state.failed -> BannerMessage(R.string.banner_error, onRetry)
-                state.banners.isEmpty() -> BannerMessage(R.string.banner_empty, onRetry)
-                else -> BannerCarousel(state.banners)
+        LazyColumn(Modifier.weight(1f).fillMaxWidth().testTag("home_articles"),
+            contentPadding = PaddingValues(bottom = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            item(key = "banner") {
+            Box(Modifier.fillMaxWidth().padding(top = 20.dp).heightIn(min = 180.dp), contentAlignment = Alignment.Center) {
+                when {
+                    state.loading -> CircularProgressIndicator(Modifier.size(28.dp), color = HomePurple)
+                    state.failed -> BannerMessage(R.string.banner_error, onRetry)
+                    state.banners.isEmpty() -> BannerMessage(R.string.banner_empty, onRetry)
+                    else -> BannerCarousel(state.banners)
+                }
+            }
+            }
+            items(state.articles, key = { "article_${it.id}" }) { article -> ArticleCard(article) }
+            item(key = "article_footer") {
+                LaunchedEffect(state.articles.size) {
+                    if (!state.articlesLoading && !state.articlesFailed && !state.articlesEndReached) onLoadArticles()
+                }
+                Box(Modifier.fillMaxWidth().testTag("article_footer").padding(16.dp), contentAlignment = Alignment.Center) {
+                    when {
+                        state.articlesLoading -> CircularProgressIndicator(Modifier.size(24.dp), color = HomePurple)
+                        state.articlesFailed -> BannerMessage(R.string.articles_error, onLoadArticles)
+                        state.articlesEndReached -> Text(stringResource(
+                            if (state.articles.isEmpty()) R.string.articles_empty else R.string.articles_end,
+                        ), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+                    }
+                }
             }
         }
     }
