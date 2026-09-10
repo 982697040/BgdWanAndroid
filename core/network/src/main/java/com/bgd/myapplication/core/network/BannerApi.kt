@@ -2,10 +2,12 @@ package com.bgd.myapplication.core.network
 
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.Serializable
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import retrofit2.http.GET
 
+@OptIn(InternalSerializationApi::class)
 @Serializable
 data class BannerResponse(
     val data: List<BannerDto>? = null,
@@ -13,6 +15,7 @@ data class BannerResponse(
     val errorMsg: String = "",
 )
 
+@OptIn(InternalSerializationApi::class)
 @Serializable
 data class BannerDto(
     val id: Int,

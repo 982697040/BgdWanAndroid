@@ -1,18 +1,22 @@
-﻿package com.bgd.myapplication.core.network
+package com.bgd.myapplication.core.network
 
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.Serializable
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import retrofit2.http.GET
 import retrofit2.http.Path
 
+@OptIn(InternalSerializationApi::class)
 @Serializable
 data class ArticleResponse(val data: ArticlePageDto? = null, val errorCode: Int, val errorMsg: String = "")
 
+@OptIn(InternalSerializationApi::class)
 @Serializable
 data class ArticlePageDto(val datas: List<ArticleDto> = emptyList(), val over: Boolean = false)
 
+@OptIn(InternalSerializationApi::class)
 @Serializable
 data class ArticleDto(
     val id: Int,
