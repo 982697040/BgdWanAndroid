@@ -35,21 +35,25 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import coil3.compose.SubcomposeAsyncImage
 import com.bgd.myapplication.core.model.Banner
+import com.bgd.myapplication.core.model.AppError
+import com.bgd.myapplication.core.designsystem.localizedMessage
 import kotlinx.coroutines.delay
 import kotlin.math.absoluteValue
 
 val HomePurple = Color(0xFF7042C1)
 
 @Composable
-fun HomeRoute(viewModel: HomeViewModel = hiltViewModel()) {
+fun HomeRoute(viewModel: HomeViewModel = hiltViewModel(), collectedIds: Set<Int> = emptySet(),
+    collecting: Boolean = false, onCollect: (Int, Boolean) -> Unit = { _, _ -> }) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     HomeScreen(state = state, onRetry = viewModel::loadBanners, onLoadArticles = viewModel::loadArticles,
-        onRetryTopArticles = viewModel::loadTopArticles)
+        onRetryTopArticles = viewModel::loadTopArticles, collectedIds = collectedIds, collecting = collecting, onCollect = onCollect)
 }
 
 @Composable
 fun HomeScreen(state: HomeUiState, onRetry: () -> Unit, onLoadArticles: () -> Unit,
     modifier: Modifier = Modifier, onRetryTopArticles: () -> Unit = {},
+    collectedIds: Set<Int>? = null, collecting: Boolean = false, onCollect: (Int, Boolean) -> Unit = { _, _ -> },
 ) {
     val context = LocalContext.current
     val topIds = state.topArticles.map { it.id }.toSet()
@@ -75,7 +79,7 @@ fun HomeScreen(state: HomeUiState, onRetry: () -> Unit, onLoadArticles: () -> Un
             Box(Modifier.fillMaxWidth().padding(top = 20.dp).heightIn(min = 180.dp), contentAlignment = Alignment.Center) {
                 when {
                     state.loading -> CircularProgressIndicator(Modifier.size(28.dp), color = HomePurple)
-                    state.failed -> BannerMessage(R.string.banner_error, onRetry)
+                    state.failed -> BannerMessage(R.string.banner_error, onRetry, state.bannerError)
                     state.banners.isEmpty() -> BannerMessage(R.string.banner_empty, onRetry)
                     else -> BannerCarousel(state.banners)
                 }
@@ -85,12 +89,18 @@ fun HomeScreen(state: HomeUiState, onRetry: () -> Unit, onLoadArticles: () -> Un
                 item(key = "top_status") {
                     Box(Modifier.fillMaxWidth().padding(12.dp), contentAlignment = Alignment.Center) {
                         if (state.topArticlesLoading) CircularProgressIndicator(Modifier.size(24.dp), color = HomePurple)
-                        else BannerMessage(R.string.top_articles_error, onRetryTopArticles)
+                        else BannerMessage(R.string.top_articles_error, onRetryTopArticles, state.topArticleError)
                     }
                 }
             }
-            items(state.topArticles, key = { "article_${it.id}" }) { ArticleCard(it, pinned = true) }
-            items(regularArticles, key = { "article_${it.id}" }) { article -> ArticleCard(article) }
+            items(state.topArticles, key = { "article_${it.id}" }) {
+                val collected = collectedIds?.contains(it.id) ?: it.collected
+                ArticleCard(it.copy(collected = collected), pinned = true, collecting = collecting) { onCollect(it.id, !collected) }
+            }
+            items(regularArticles, key = { "article_${it.id}" }) {
+                val collected = collectedIds?.contains(it.id) ?: it.collected
+                ArticleCard(it.copy(collected = collected), collecting = collecting) { onCollect(it.id, !collected) }
+            }
             item(key = "article_footer") {
                 LaunchedEffect(state.articles.size) {
                     if (!state.articlesLoading && !state.articlesFailed && !state.articlesEndReached) onLoadArticles()
@@ -98,7 +108,7 @@ fun HomeScreen(state: HomeUiState, onRetry: () -> Unit, onLoadArticles: () -> Un
                 Box(Modifier.fillMaxWidth().testTag("article_footer").padding(16.dp), contentAlignment = Alignment.Center) {
                     when {
                         state.articlesLoading -> CircularProgressIndicator(Modifier.size(24.dp), color = HomePurple)
-                        state.articlesFailed -> BannerMessage(R.string.articles_error, onLoadArticles)
+                        state.articlesFailed -> BannerMessage(R.string.articles_error, onLoadArticles, state.articleError)
                         state.articlesEndReached -> Text(stringResource(
                             if (state.articles.isEmpty() && state.topArticles.isEmpty()) R.string.articles_empty else R.string.articles_end,
                         ), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
@@ -110,9 +120,9 @@ fun HomeScreen(state: HomeUiState, onRetry: () -> Unit, onLoadArticles: () -> Un
 }
 
 @Composable
-private fun BannerMessage(message: Int, onRetry: () -> Unit) {
+private fun BannerMessage(message: Int, onRetry: () -> Unit, error: AppError? = null) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(stringResource(message), color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(error?.localizedMessage() ?: stringResource(message), color = MaterialTheme.colorScheme.onSurfaceVariant)
         TextButton(onClick = onRetry) { Text(stringResource(R.string.retry)) }
     }
 }

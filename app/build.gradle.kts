@@ -31,6 +31,8 @@ android {
 }
 kotlin { compilerOptions { jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17) } }
 dependencies {
+    implementation(project(":core:domain"))
+    implementation(project(":feature:auth"))
     implementation(project(":feature:projects"))
     implementation(project(":core:model"))
     implementation(project(":core:datastore"))
@@ -57,6 +59,7 @@ dependencies {
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
     testImplementation(libs.junit)
+    androidTestImplementation(libs.kotlinx.coroutines.test)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     androidTestImplementation(libs.androidx.junit)

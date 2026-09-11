@@ -31,6 +31,8 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.SubcomposeAsyncImage
 import com.bgd.myapplication.core.model.Project
+import com.bgd.myapplication.core.model.AppError
+import com.bgd.myapplication.core.designsystem.localizedMessage
 
 private val Purple = Color(0xFF7042C1)
 
@@ -53,7 +55,7 @@ fun ProjectsScreen(state: ProjectsUiState, onSelect: (Int) -> Unit, onRetryCateg
         }
         when {
             state.categoriesLoading -> StatusBox { Progress() }
-            state.categoriesFailed -> StatusBox { RetryMessage(R.string.categories_error, onRetryCategories) }
+            state.categoriesFailed -> StatusBox { RetryMessage(R.string.categories_error, onRetryCategories, state.categoryError) }
             state.categories.isEmpty() -> StatusBox { Text(stringResource(R.string.categories_empty)) }
             else -> {
                 val tabs = rememberLazyListState()
@@ -91,7 +93,7 @@ fun ProjectsScreen(state: ProjectsUiState, onSelect: (Int) -> Unit, onRetryCateg
                             Box(Modifier.fillMaxWidth().padding(16.dp).testTag("projects_footer"), contentAlignment = Alignment.Center) {
                                 when {
                                     state.loading -> Progress()
-                                    state.failed -> RetryMessage(R.string.projects_error, onLoadMore)
+                                    state.failed -> RetryMessage(R.string.projects_error, onLoadMore, state.projectError)
                                     state.endReached -> Text(stringResource(if (state.projects.isEmpty()) R.string.projects_empty else R.string.projects_end),
                                         fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
@@ -113,9 +115,9 @@ private fun StatusBox(content: @Composable () -> Unit) {
 private fun Progress() { CircularProgressIndicator(Modifier.size(24.dp), color = Purple) }
 
 @Composable
-private fun RetryMessage(message: Int, retry: () -> Unit) {
+private fun RetryMessage(message: Int, retry: () -> Unit, error: AppError? = null) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(stringResource(message), fontSize = 14.sp)
+        Text(error?.localizedMessage() ?: stringResource(message), fontSize = 14.sp)
         TextButton(onClick = retry) { Text(stringResource(R.string.retry)) }
     }
 }

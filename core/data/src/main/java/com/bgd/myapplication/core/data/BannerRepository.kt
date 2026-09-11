@@ -6,8 +6,8 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class BannerRepository @Inject constructor(private val api: BannerApi) {
-    suspend fun getBanners(): List<Banner> = api.getBanners()
+class BannerRepository @Inject constructor(private val api: BannerApi) : com.bgd.myapplication.core.domain.BannerRepository {
+    override suspend fun getBanners(): List<Banner> = api.getBanners()
         .filter { it.isVisible == 1 && it.imagePath.isNotBlank() }
         .distinctBy { it.id }
         .map { Banner(it.id, it.title, it.imagePath, it.url) }

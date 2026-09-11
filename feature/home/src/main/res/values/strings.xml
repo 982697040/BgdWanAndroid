@@ -1,4 +1,5 @@
 <resources>
+    <string name="anonymous_author">匿名</string>
     <string name="article_pinned">置顶</string>
     <string name="top_articles_error">置顶文章加载失败，请重试</string>
     <string name="articles_error">文章加载失败，请重试</string>

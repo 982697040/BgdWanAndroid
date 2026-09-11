@@ -2,7 +2,7 @@ package com.bgd.myapplication.feature.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.bgd.myapplication.core.data.SettingsRepository
+import com.bgd.myapplication.core.domain.SettingsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import java.io.IOException

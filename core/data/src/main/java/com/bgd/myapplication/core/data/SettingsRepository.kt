@@ -10,10 +10,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
 
-interface SettingsRepository {
-    val themeMode: Flow<ThemeMode>
-    suspend fun setThemeMode(mode: ThemeMode)
-}
+typealias SettingsRepository = com.bgd.myapplication.core.domain.SettingsRepository
 
 class OfflineSettingsRepository @Inject constructor(
     private val preferences: PreferencesDataSource,

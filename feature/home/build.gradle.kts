@@ -21,7 +21,7 @@ kotlin { compilerOptions { jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarg
 
 dependencies {
     implementation(project(":core:model"))
-    implementation(project(":core:data"))
+    implementation(project(":core:domain"))
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
     implementation(libs.androidx.hilt.compose)

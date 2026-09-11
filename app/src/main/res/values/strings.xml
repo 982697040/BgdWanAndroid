@@ -1,4 +1,12 @@
 <resources>
+    <string name="avatar">头像</string>
+    <string name="tap_avatar_login">点击头像登录</string>
+    <string name="session_restoring">正在恢复登录状态</string>
+    <string name="session_retry">重试恢复登录状态</string>
+    <string name="logout">退出登录</string>
+    <string name="collected_success">收藏成功</string>
+    <string name="uncollected_success">已取消收藏</string>
+    <string name="logout_success">已退出登录</string>
     <string name="app_name">BgdDemo</string>
     <string name="tab_home">首页</string>
     <string name="tab_system">体系</string>

@@ -9,11 +9,11 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class ProjectRepository @Inject constructor(private val api: ProjectApi) {
-    suspend fun categories(): List<ProjectCategory> = api.categories()
+class ProjectRepository @Inject constructor(private val api: ProjectApi) : com.bgd.myapplication.core.domain.ProjectRepository {
+    override suspend fun categories(): List<ProjectCategory> = api.categories()
         .distinctBy { it.id }.map { ProjectCategory(it.id, decode(it.name)) }
 
-    suspend fun projects(category: Int, page: Int): ProjectPage {
+    override suspend fun projects(category: Int, page: Int): ProjectPage {
         val response = api.projects(category, page)
         return ProjectPage(response.datas.map {
             Project(it.id, decode(it.title), it.envelopePic.orEmpty(), it.link)

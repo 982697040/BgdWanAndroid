@@ -2,25 +2,14 @@ package com.bgd.myapplication.core.network
 
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.Serializable
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import retrofit2.http.GET
 import retrofit2.http.Path
 
-@OptIn(InternalSerializationApi::class)
-@Serializable
-data class ArticleResponse(val data: ArticlePageDto? = null, val errorCode: Int, val errorMsg: String = "")
-
-@OptIn(InternalSerializationApi::class)
-@Serializable
-data class TopArticleResponse(val data: List<ArticleDto>? = null, val errorCode: Int, val errorMsg: String = "")
-
-@OptIn(InternalSerializationApi::class)
 @Serializable
 data class ArticlePageDto(val datas: List<ArticleDto> = emptyList(), val over: Boolean = false)
 
-@OptIn(InternalSerializationApi::class)
 @Serializable
 data class ArticleDto(
     val id: Int,
@@ -37,22 +26,18 @@ data class ArticleDto(
 
 internal interface ArticleService {
     @GET("article/top/json")
-    suspend fun topArticles(): TopArticleResponse
+    suspend fun topArticles(): ApiResponse<List<ArticleDto>>
     @GET("article/list/{page}/json")
-    suspend fun articles(@Path("page") page: Int): ArticleResponse
+    suspend fun articles(@Path("page") page: Int): ApiResponse<ArticlePageDto>
 }
 
 @Singleton
-class ArticleApi @Inject constructor(factory: RetrofitFactory) {
+class ArticleApi @Inject constructor(factory: RetrofitFactory, private val executor: ApiExecutor) {
     suspend fun getTopArticles(): List<ArticleDto> {
-        val response = service.topArticles()
-        check(response.errorCode == 0) { response.errorMsg.ifBlank { "Top articles request failed" } }
-        return checkNotNull(response.data) { "Missing top articles" }
+        return executor.data { service.topArticles() }
     }
     private val service = factory.create("https://wanandroid.com/".toHttpUrl()).create(ArticleService::class.java)
     suspend fun getArticles(page: Int): ArticlePageDto {
-        val response = service.articles(page)
-        check(response.errorCode == 0) { response.errorMsg.ifBlank { "Article request failed" } }
-        return checkNotNull(response.data) { "Missing article page" }
+        return executor.data { service.articles(page) }
     }
 }

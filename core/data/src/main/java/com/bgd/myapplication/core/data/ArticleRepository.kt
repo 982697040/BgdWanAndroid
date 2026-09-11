@@ -12,10 +12,10 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class ArticleRepository @Inject constructor(private val api: ArticleApi) {
-    suspend fun getTopArticles(): List<Article> = mapArticles(api.getTopArticles()).distinctBy(Article::id)
+class ArticleRepository @Inject constructor(private val api: ArticleApi) : com.bgd.myapplication.core.domain.ArticleRepository {
+    override suspend fun getTopArticles(): List<Article> = mapArticles(api.getTopArticles()).distinctBy(Article::id)
 
-    suspend fun getArticles(page: Int): ArticlePage {
+    override suspend fun getArticles(page: Int): ArticlePage {
         val result = api.getArticles(page)
         return ArticlePage(mapArticles(result.datas), result.over || result.datas.isEmpty())
     }
@@ -27,7 +27,7 @@ class ArticleRepository @Inject constructor(private val api: ArticleApi) {
                 id = it.id,
                 title = plainText(it.title),
                 url = it.link,
-                author = plainText(it.author?.takeIf(String::isNotBlank) ?: it.shareUser.orEmpty()).ifBlank { "匿名" },
+                author = plainText(it.author?.takeIf(String::isNotBlank) ?: it.shareUser.orEmpty()),
                 date = it.publishTime?.takeIf { time -> time > 0 }?.let { time -> dateFormat.format(Date(time)) }
                     ?: it.niceDate.orEmpty(),
                 category = listOf(it.superChapterName, it.chapterName).filterNotNull()

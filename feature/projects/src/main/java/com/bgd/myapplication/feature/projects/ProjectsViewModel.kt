@@ -3,7 +3,9 @@
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.bgd.myapplication.core.data.ProjectRepository
+import com.bgd.myapplication.core.domain.ProjectRepository
+import com.bgd.myapplication.core.model.AppError
+import com.bgd.myapplication.core.model.AppException
 import com.bgd.myapplication.core.model.Project
 import com.bgd.myapplication.core.model.ProjectCategory
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -24,6 +26,8 @@ data class ProjectsUiState(
     val loading: Boolean = false,
     val failed: Boolean = false,
     val endReached: Boolean = false,
+    val categoryError: AppError? = null,
+    val projectError: AppError? = null,
 )
 
 @HiltViewModel
@@ -43,7 +47,7 @@ class ProjectsViewModel @Inject constructor(
     fun loadCategories() {
         if (categoryRequest?.isActive == true) return
         categoryRequest = viewModelScope.launch {
-            mutableState.update { it.copy(categoriesLoading = true, categoriesFailed = false) }
+            mutableState.update { it.copy(categoriesLoading = true, categoriesFailed = false, categoryError = null) }
             try {
                 val categories = repository.categories()
                 mutableState.update { it.copy(categories = categories, categoriesLoading = false) }
@@ -51,8 +55,8 @@ class ProjectsViewModel @Inject constructor(
                 (categories.firstOrNull { it.id == savedId } ?: categories.firstOrNull())?.let { selectCategory(it.id) }
             } catch (cancelled: CancellationException) {
                 throw cancelled
-            } catch (_: Exception) {
-                mutableState.update { it.copy(categoriesLoading = false, categoriesFailed = true) }
+            } catch (error: Exception) {
+                mutableState.update { it.copy(categoriesLoading = false, categoriesFailed = true, categoryError = (error as? AppException)?.error ?: AppError.Unknown) }
             }
         }
     }
@@ -73,7 +77,7 @@ class ProjectsViewModel @Inject constructor(
         if (pageRequest?.isActive == true || mutableState.value.endReached) return
         val currentGeneration = generation
         pageRequest = viewModelScope.launch {
-            mutableState.update { it.copy(loading = true, failed = false) }
+            mutableState.update { it.copy(loading = true, failed = false, projectError = null) }
             try {
                 val page = repository.projects(category, nextPage)
                 if (currentGeneration != generation) return@launch
@@ -82,8 +86,8 @@ class ProjectsViewModel @Inject constructor(
                     loading = false, endReached = page.endReached) }
             } catch (cancelled: CancellationException) {
                 throw cancelled
-            } catch (_: Exception) {
-                if (currentGeneration == generation) mutableState.update { it.copy(loading = false, failed = true) }
+            } catch (error: Exception) {
+                if (currentGeneration == generation) mutableState.update { it.copy(loading = false, failed = true, projectError = (error as? AppException)?.error ?: AppError.Unknown) }
             }
         }
     }

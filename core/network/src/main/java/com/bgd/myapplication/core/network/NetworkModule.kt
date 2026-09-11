@@ -43,7 +43,9 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideHttpClient(): OkHttpClient = OkHttpClient.Builder()
+    fun provideHttpClient(sessionInterceptor: SessionInterceptor): OkHttpClient = OkHttpClient.Builder()
+        .addInterceptor(sessionInterceptor)
+        .followRedirects(false)
         .connectTimeout(15, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
         .callTimeout(60, TimeUnit.SECONDS)

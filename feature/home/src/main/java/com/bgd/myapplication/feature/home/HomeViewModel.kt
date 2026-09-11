@@ -2,10 +2,12 @@ package com.bgd.myapplication.feature.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.bgd.myapplication.core.data.BannerRepository
+import com.bgd.myapplication.core.domain.BannerRepository
 import com.bgd.myapplication.core.model.Banner
 import com.bgd.myapplication.core.model.Article
-import com.bgd.myapplication.core.data.ArticleRepository
+import com.bgd.myapplication.core.domain.ArticleRepository
+import com.bgd.myapplication.core.model.AppError
+import com.bgd.myapplication.core.model.AppException
 import kotlinx.coroutines.flow.update
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -26,6 +28,9 @@ data class HomeUiState(
     val topArticles: List<Article> = emptyList(),
     val topArticlesLoading: Boolean = false,
     val topArticlesFailed: Boolean = false,
+    val bannerError: AppError? = null,
+    val articleError: AppError? = null,
+    val topArticleError: AppError? = null,
 )
 
 @HiltViewModel
@@ -45,14 +50,14 @@ class HomeViewModel @Inject constructor(
     fun loadTopArticles() {
         if (topRequest?.isActive == true) return
         topRequest = viewModelScope.launch {
-            mutableState.update { it.copy(topArticlesLoading = true, topArticlesFailed = false) }
+            mutableState.update { it.copy(topArticlesLoading = true, topArticlesFailed = false, topArticleError = null) }
             try {
                 val articles = articleRepository.getTopArticles()
                 mutableState.update { it.copy(topArticles = articles, topArticlesLoading = false) }
             } catch (cancelled: CancellationException) {
                 throw cancelled
-            } catch (_: Exception) {
-                mutableState.update { it.copy(topArticlesLoading = false, topArticlesFailed = true) }
+            } catch (error: Exception) {
+                mutableState.update { it.copy(topArticlesLoading = false, topArticlesFailed = true, topArticleError = (error as? AppException)?.error ?: AppError.Unknown) }
             }
         }
     }
@@ -60,7 +65,7 @@ class HomeViewModel @Inject constructor(
     fun loadArticles() {
         if (articleRequest?.isActive == true || mutableState.value.articlesEndReached) return
         articleRequest = viewModelScope.launch {
-            mutableState.update { it.copy(articlesLoading = true, articlesFailed = false) }
+            mutableState.update { it.copy(articlesLoading = true, articlesFailed = false, articleError = null) }
             try {
                 val page = articleRepository.getArticles(nextPage)
                 nextPage++
@@ -71,8 +76,8 @@ class HomeViewModel @Inject constructor(
                 ) }
             } catch (cancelled: CancellationException) {
                 throw cancelled
-            } catch (_: Exception) {
-                mutableState.update { it.copy(articlesLoading = false, articlesFailed = true) }
+            } catch (error: Exception) {
+                mutableState.update { it.copy(articlesLoading = false, articlesFailed = true, articleError = (error as? AppException)?.error ?: AppError.Unknown) }
             }
         }
     }
@@ -80,14 +85,14 @@ class HomeViewModel @Inject constructor(
     fun loadBanners() {
         if (request?.isActive == true) return
         request = viewModelScope.launch {
-            mutableState.update { it.copy(loading = true, failed = false) }
+            mutableState.update { it.copy(loading = true, failed = false, bannerError = null) }
             try {
                 val banners = repository.getBanners()
                 mutableState.update { it.copy(loading = false, banners = banners) }
             } catch (cancelled: CancellationException) {
                 throw cancelled
-            } catch (_: Exception) {
-                mutableState.update { it.copy(loading = false, failed = true) }
+            } catch (error: Exception) {
+                mutableState.update { it.copy(loading = false, failed = true, bannerError = (error as? AppException)?.error ?: AppError.Unknown) }
             }
         }
     }

@@ -24,5 +24,6 @@ dependencyResolutionManagement {
 
 rootProject.name = "BgdDemo"
 include(":app")
+include(":core:domain", ":feature:auth")
 include(":feature:projects")
 include(":core:model", ":core:datastore", ":core:data", ":core:network", ":core:database", ":core:designsystem", ":feature:home", ":feature:settings")

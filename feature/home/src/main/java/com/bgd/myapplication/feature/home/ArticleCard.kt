@@ -20,7 +20,7 @@ import androidx.compose.ui.unit.sp
 import com.bgd.myapplication.core.model.Article
 
 @Composable
-internal fun ArticleCard(article: Article, pinned: Boolean = false) {
+internal fun ArticleCard(article: Article, pinned: Boolean = false, collecting: Boolean = false, onCollect: () -> Unit = {}) {
     val context = LocalContext.current
     val uriHandler = LocalUriHandler.current
     Card(
@@ -42,7 +42,7 @@ internal fun ArticleCard(article: Article, pinned: Boolean = false) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 if (pinned) Text(stringResource(R.string.article_pinned),
                     Modifier.padding(end = 8.dp), color = Color(0xFFFF443D), fontSize = 12.sp)
-                Text(article.author, Modifier.weight(1f).padding(end = 8.dp), fontSize = 12.sp,
+                Text(article.author.ifBlank { stringResource(R.string.anonymous_author) }, Modifier.weight(1f).padding(end = 8.dp), fontSize = 12.sp,
                     maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(article.date, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
@@ -52,9 +52,7 @@ internal fun ArticleCard(article: Article, pinned: Boolean = false) {
                 Text(article.category, Modifier.weight(1f), fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1, overflow = TextOverflow.Ellipsis)
-                IconButton(onClick = {
-                    Toast.makeText(context, R.string.collect_login, Toast.LENGTH_SHORT).show()
-                }) {
+                IconButton(onClick = onCollect, enabled = !collecting, modifier = Modifier.testTag("collect_${article.id}")) {
                     Icon(painterResource(R.drawable.ic_star),
                         stringResource(if (article.collected) R.string.collected else R.string.collect),
                         tint = if (article.collected) Color(0xFFE52310) else Color(0xFF999999),
